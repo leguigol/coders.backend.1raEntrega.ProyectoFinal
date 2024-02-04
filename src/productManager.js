@@ -70,13 +70,14 @@ class ProductManager {
     async deleteProduct(productId) {
         try {
             const allProducts = await this.getProducts();
-            
+
             const index = allProducts.productos.findIndex(product => product.id === productId);
-            
             if (index !== -1) {
                 const deletedProduct = allProducts.productos.splice(index, 1)[0];
 
-                await fs.writeFile(this.pathDB, JSON.stringify({ productos: allProducts.productos }));
+                allProducts.productos = allProducts.productos.filter(product => product.id !== productId);
+
+                await fs.writeFile(this.pathDB, JSON.stringify(allProducts));
 
                 return deletedProduct;
             } else {

@@ -40,10 +40,29 @@ io.on('connection', (socket) => {
     setInterval(async () => {
         const products = await pM.getProducts();
         io.emit('set-products', products.productos);
+            
     }, 1000); 
 
-    socket.on('productCreated', async () => {
-        const products = await pM.getProducts();
-        io.emit('updateProducts', products.productos);
-    });
+    socket.on('eliminar-producto', async(data)=>{
+        try
+        {
+            await pM.deleteProduct(Number(data.id));
+        
+            console.log('Producto eliminado correctamente:', data);
+
+        }catch(error){
+            console.log('error al borrar producto');
+        }
+    })
+
+    socket.on('agregar-producto', async(data)=>{
+        try{
+            const newProduct=(data);
+            await pM.createProduct(newProduct);
+            console.log(newProduct);
+        }catch(error){
+            console.log('error al agregar el producto');
+        }
+    })
+
 });    

@@ -12,7 +12,7 @@ const pM = new ProductManager(pathBase);
 router.get("/", async (req, res) => {
   try {
       const products = await pM.getProducts();
-      res.render("index", { productos: products.productos });
+      res.render("home", { productos: products.productos });
   } catch (error) {
       res.status(500).json({ error: error.message });
   }
