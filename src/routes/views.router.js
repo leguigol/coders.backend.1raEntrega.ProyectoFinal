@@ -4,7 +4,7 @@ const path = require("path");
 
 const router = Router();
 
-const ProductManager = require('../productManager');
+const ProductManager = require('../dao/managers/productManager');
 const pathBase = path.join(__dirname, '../productos.json');
 const pM = new ProductManager(pathBase);
 

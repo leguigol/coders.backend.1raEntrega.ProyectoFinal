@@ -1,154 +1,121 @@
-const { Router }=require('express');
-const ProductManager=require('../productManager');
-const path = require('path');
-const pathBase=path.join(__dirname,'../productos.json');
+const {Router}=require('express');
+const productsData=require('../init-data/products.data');
+const productModel=require('../dao/model/products.model');
+const ProductManager=require('../dao/managers/productManager');
 
-// const pM=new ProductManager(pathBase);
+class ProductsRoutes {
 
-const router=Router();
+    path='/products';
+    router=Router();
+    productManager=new ProductManager();
 
-router.get(`/`, async(req, res)=>{
-    try{
-        const pM=new ProductManager(pathBase);
-
-        let products=await pM.getProducts();
-        
-        let limitedProducts;
-        const limit=parseInt(req.query.limit);
-        
-        if (!isNaN(limit) && limit > 0) {
-            // Validar y aplicar el límite si es proporcionado
-            limitedProducts = products.productos.slice(0, limit);
-        } else {
-            // Si no hay límite o el límite no es válido, devolver todos los productos
-            limitedProducts = products;
-        }
-
-        return res.json({
-            ok: true,
-            productos: limitedProducts,
-        });
-    }catch(error){
-        res.status(500).json({error: error.message});        
+    constructor(){
+        this.initProductsRoutes();
     }
-});
 
-router.get(`/:productId`, async(req,res)=>{
-    try {
-        const pM=new ProductManager(pathBase);
-        const productId = parseInt(req.params.productId);
+    initProductsRoutes(){
+        this.router.get(`${this.path}/insertion`, async(req,res)=>{
+            try{
+                const products=await productModel.insertMany(productsData);
+                return res.json({
+                    message: "products massive insert successfully",
+                    productsInserted: products,  
+                })
+            }catch(error){
+                console.log(error);
+            }
+        })
 
-        if (isNaN(productId)) {
-            return res.status(400).json({ error: 'El ID del producto debe ser un número válido.' });
-        }
-
-        const product = await pM.getProductById(productId);
-
-        if(!product){
-            return res.json({
-                ok: true,
-                message: `no existe el producto con el id ${productId}`,
-                producto,
-                queryParams: req.query,
-            });
-        }
+        //retorna todos los productos
+        this.router.get(`${this.path}`,async(req,res)=>{
+            try{
+                const products=await this.productManager.getAllProducts();
+                const limit=parseInt(req.query.limit);
+                
+                const limitedProducts = !isNaN(limit) && limit > 0
+                ? products.slice(0, limit)
+                : products;
+        
+                return res.status(200).json({
+                    ok: true,
+                    message: `getAllProducts`,products
+                });
     
-        return res.json({
-            ok: true,
-            message: `producto id: ${productId}`,
-            product
-        });
+            }catch(error){
+                console.log(error);
+            }
+        })
+
+        //retorna un producto por id
+        this.router.get(`${this.path}/:pid`,async(req,res)=>{
+            try{
+                const productId=req.params.pid;
+                console.log(productId);
+                const product=await this.productManager.getProductById(productId);
+
+                if(product.length===0){
+                    return res.status(404).json({
+                        ok: true,
+                        message: "the product doesnt exists"
+                    })
+                }
+
+                return res.status(200).json({
+                    ok: true,
+                    message: `getProductById`,product
+                });
     
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+            }catch(error){
+                console.log(error);
+            }
+        })
+        // agrego producto
+        this.router.post(`${this.path}`,async(req,res)=>{
+            try{
+                const productBody=req.body;
 
-});
+                const newProduct=await this.productManager.createProduct(productBody);
+                if(!newProduct){
+                    return res.json({
+                        message: `El producto con ID: ${productBody.id} ya se encuentra creado`,
+                    });
+                }
+                return res.json({
+                    message: 'producto creado correctamente !',
+                    product: newProduct,
+                });
 
-router.post(`/`, async(req,res)=>{
-    try{
-        const pM=new ProductManager(pathBase);
-        const product=req.body
 
-        const {title,description,code,price,status,stock,category}=product;
-     
-        if (!title || !description || !code || !price || !status || !stock || !category){
-            res.status(400).json({
-                ok: false,
-                error: `falta campo obligatorio`
-            })
-        }
+            }catch(error){
+                console.log("🚀 ~ ProductsRoutes ~ this.router.post ~ error:", error)
+                
+            }
+        })
+        this.router.put(`${this.path}/:pid`, async (req, res) => {
+            try {
+                const productId = req.params.pid;
+                const updatedData = req.body;
         
-        const newProduct = await pM.createProduct(product);
-    
-        res.json({
-            ok: true,
-            message: "producto creado",
-            usuario: newProduct
-        });    
-    }catch(error){
-        res.status(500).json({ error: error.message });       
-    }
-});
-
-router.put(`/:pid`, async(req, res)=>{
-
-    try{
-        const pM=new ProductManager(pathBase);
-
-        const productId=Number(req.params.pid);
+                const updatedProduct = await this.productManager.updateProduct(productId, updatedData);
         
-        if (isNaN(productId)) {
-            return res.status(400).json({ error: 'El ID del producto debe ser un número válido.' });
-        }
-
-        const existingProduct = await pM.getProductById(productId);
-
-        if (!existingProduct) {
-            return res.status(404).json({ error: `No se encontró ningún producto con el ID ${productId}.` });
-        }  
-
-        const updatedProduct = { ...existingProduct, ...req.body };
-
-        await pM.updateProduct(productId, updatedProduct);
-
-        res.json({
-            ok: true,
-            message: `Producto con ID ${productId} actualizado`,
-            producto: updatedProduct
+                if (!updatedProduct) {
+                    return res.status(404).json({
+                        message: `El producto con ID: ${productId} no encontrado`,
+                    });
+                }
+        
+                return res.json({
+                    message: 'Producto actualizado correctamente!',
+                    updatedProduct,
+                });
+            } catch (error) {
+                console.error("Error al actualizar producto:", error);
+                return res.status(500).json({
+                    error: "Internal Server Error"
+                });
+            }
         });
-    }catch(error){
-        res.status(500).json({ error: error.message });       
     }
+}
 
-
-})
-
-router.delete(`/:pid`, async(req,res)=>{
-    try{
-        const pM=new ProductManager(pathBase);
-
-        const productId=Number(req.params.pid);
-        
-        if (isNaN(productId)) {
-            return res.status(400).json({ error: 'El ID del producto debe ser un número válido.' });
-        }
-
-        const existingProduct = await pM.getProductById(productId);
-
-        if (!existingProduct) {
-            return res.status(404).json({ error: `No se encontró ningún producto con el ID ${productId}.` });
-        }  
-
-        await pM.deleteProduct(productId);
-
-        res.json({
-            ok: true,
-            message: `Producto con ID ${productId} eliminado`
-        });
-
-    }catch(error){
-        res.status(500).json({ error: error.message });       
-    }
-})
-module.exports=router;
+module.exports=ProductsRoutes;

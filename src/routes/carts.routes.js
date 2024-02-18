@@ -1,99 +1,71 @@
-const { Router }=require('express');
-const CartManager=require('../cartManager');
-const path = require('path');
-const pathBase=path.join(__dirname,'../carrito.json');
+const {Router}=require('express');
+const cartData=require('../init-data/carts.data');
+const cartModel=require('../dao/model/cart.model');
+const CartManager=require('../dao/managers/cartManager');
 
-const cM = new CartManager(pathBase);
+class CartRoutes {
 
-const router=Router();
+    path='/cart';
+    router=Router();
 
-router.get(`/`, async(req,res)=>{
-    try{
+    cartManager=new CartManager();
 
-        const carrito=await cM.getCarts();
-        return res.json({
-            carrito
+    constructor(){
+        this.initCartRoutes();
+    }
+
+    initCartRoutes(){
+        this.router.get(`${this.path}/insertion`, async(req,res)=>{
+            try{
+                const carts=await cartModel.insertMany(cartData);
+                return res.json({
+                    message: "cart massive insert successfully",
+                    cartsInserted: carts,  
+                })
+            }catch(error){
+                console.log(error);
+            }
         })
-    }catch(error){
-        console.log(error);
-    }
-});
 
-router.get(`/:cid`, async(req,res)=>{
-    try {
+        this.router.get(`${this.path}/:cid`,async(req,res)=>{
+            try{
+                const cartId=req.params.cid;
+                console.log(cartId);
+                const cart=await this.cartManager.getCartById(cartId);
 
-        const cartId = parseInt(req.params.cid);
-        
-        if (isNaN(cartId)) {
-            return res.status(400).json({ error: 'El ID del producto debe ser un número válido.' });
-        }
+                if(cart.length===0){
+                    return res.status(404).json({
+                        ok: true,
+                        message: "the cart doesnt exists"
+                    })
+                }
 
-        const cart = await cM.getCartById(cartId);
-
-        if(!cart){
-            return res.json({
-                ok: true,
-                message: `no existe el carrito con el id ${cartId}`,
-                cart,
-                queryParams: req.query,
-            });
-        }
-
-        const productsInCart = cart.productos || []
-
-        return res.json({
-            ok: true,
-            message: `carrito id: ${cartId}`,
-            products: productsInCart
-        });
+                return res.status(200).json({
+                    ok: true,
+                    message: `getCartById`,cart
+                });
     
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+            }catch(error){
+                console.log(error);
+            }
+        })
 
-});
-
-router.post('/:cid/product/:pid', async (req, res) => {
-    try {
-
-        const cartId = parseInt(req.params.cid);
-        const productId = parseInt(req.params.pid);
+        this.router.put(`${this.path}/:cid`, async (req, res) => {
+            try {
+                const cartId = req.params.cid;
+                const {productos} = req.body;
         
-        if (isNaN(cartId) || isNaN(productId)) {
-            return res.status(400).json({ error: 'Los IDs del carrito y del producto deben ser números válidos.' });
-        }
-
-        const cart = await cM.getCartById(cartId);
-
-        if (!cart) {
-            return res.status(404).json({ error: `No se encontró ningún carrito con el ID ${cartId}.` });
-        }
-
-        const existingProductIndex = cart.productos.findIndex(product => product.id === productId);
-
-        if (existingProductIndex !== -1) {
-            // El producto ya existe en el carrito, incrementar la cantidad
-            cart.productos[existingProductIndex].quantity++;
-        } else {
-            // El producto no existe en el carrito, agregarlo
-            const newProductEntry = {
-                id: productId,
-                quantity: 1
-            };
-            cart.productos.push(newProductEntry);
-        }
-
-        // Actualizar carrito
-        await cM.updateCart(cart);
-
-        res.json({
-            ok: true,
-            message: `Producto con ID ${productId} agregado al carrito con ID ${cartId}`,
-            cart
+                await this.cartManager.updateCart({ id: cartId, productos });
+                return res.json({ ok: true, message: 'Carrito actualizado correctamente.' });
+            } catch (error) {
+                console.error('Error en la ruta de actualización del carrito:', error);
+                return res.status(500).json({ ok: false, error: 'Error interno del servidor.' });
+            }
+                 
         });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
-module.exports=router;
+
+    }
+}
+
+module.exports=CartRoutes;

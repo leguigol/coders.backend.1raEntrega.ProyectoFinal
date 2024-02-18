@@ -1,44 +1,47 @@
-
 const socket = io();
 
-socket.on('set-products',(data)=>{
-    // console.log('a ver la data:',data);
+let user;
+const chatBox=document.getElementById("chat-box");
 
-    const productList = document.getElementById('productList');
-    
-    if(productList){
-        productList.innerHTML = '';
+Swal.fire({
+    title: 'Ingresa tu nombre',
+    input: "text",
+    text: 'ingresa el usuario para identificarse en el chat !',
+    icon: 'success',
+    inputValidator: (value)=>{
+        return !value && "Necesitas escribir un nombre de usuario para continuar";
+    },
+    allowOutsideClick: false
+}).then((result)=>{
+    user=result.value
+    socket.emit("new-user", user)
+})
 
-        data.map(product => {
-            const listItem = document.createElement('li');
-            listItem.textContent = `${product.id} - ${product.title} - ${product.description} - ${product.price}`;
-            return listItem;
-        }).forEach(item => {
-            productList.appendChild(item);
-        });
-    
+
+chatBox.addEventListener("keyup", (e)=>{
+    if(e.key==="Enter"){
+        if(chatBox.value.trim().length){
+            socket.emit("message", { user, message: chatBox.value})
+            chatBox.value="";
+        }
     }
-});
+})
 
-function eliminarProducto() {
-    const productIdInput = document.getElementById('productId');
-    if (productIdInput && productIdInput.value.trim() !== '') {
-        const productId = productIdInput.value.trim();
-        socket.emit('eliminar-producto', { id: productId });
-    } else {
-        console.error('ID del producto no válido');
-    }
-}
+socket.on("messageLogs", (data)=>{
+    console.log(data);
+    const logs=document.getElementById("message-logs");
+    let messages="";
+    data.forEach(element => {
+        messages+=`<p>${element.user} dice: ${element.message}</p>`
+    });
 
-function agregarProducto(){
-    const title=document.getElementById('title').value;
-    const description=document.getElementById('description').value;
-    const code=document.getElementById('code').value;
-    const price=document.getElementById('price').value;
-    const stock=document.getElementById('stock').value;
-    const category=document.getElementById('category').value;
+    logs.innerHTML=messages;
+})
 
-    //console.log({title,description,code,price,stock,category});
-    socket.emit('agregar-producto', {title: title, description: description,code: code, price: price, stock: stock, category: category, status: true, thumbnail: ''})
-
-}
+socket.on("new-user", (user)=>{
+    Swal.fire({
+        text: `${user} se ha unido al chat`,
+        toast: true,
+        position: "top-right"
+    })
+})
