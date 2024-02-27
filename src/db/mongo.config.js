@@ -6,7 +6,8 @@ const DB_NAME='ecommerce'
 
 const configConnection={
 //    url: DB_CNN ?? `mongodb://${DB_HOST}:${DB_PORT}/${DB_NAME}`,
-    url: `mongodb://${DB_HOST}:${DB_PORT}/${DB_NAME}`,
+    // url: `mongodb://${DB_HOST}:${DB_PORT}/${DB_NAME}`,
+    url: `mongodb+srv://leguigol:Lancelot1014@cluster0.pz68o51.mongodb.net/`,
     options: {
         useNewUrlParser: true,
         useUnifiedTopology: true,

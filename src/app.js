@@ -56,19 +56,33 @@ class App {
     }
      
     listen(){
-        this.app.listen(this.port,()=>{
+        const server=this.app.listen(this.port,()=>{
             displayRoutes(this.app);
             console.log('=============================');
             console.log(`==== ENV: ${this.env}`);
             console.log(`==== PORT: ${this.port}`);
             console.log('=============================');
 
-        })
-        var http = require('http').Server(this.app);
-        var io = require('socket.io')(http);
-        io.on('connection', () =>{
-            console.log('Un usuario esta conectado')
-        })
+        });
+        
+        const io=require('socket.io')(server);
+
+        const messages=[];
+
+        io.on('connection', (socket) =>{
+            console.log('Un usuario esta conectado',socket.id);
+
+            socket.emit('messageLogs',messages);
+
+            socket.on("new-user",(data)=>{
+                socket.broadcast.emit('new-user',data);
+            })
+
+            socket.on("message",(data)=>{
+                messages.unshift(data);
+                io.emit("messageLogs",messages);
+            });
+        });
     }
 }
 
