@@ -3,10 +3,12 @@ const displayRoutes=require('express-routemap');
 const handlebars=require('express-handlebars');
 const { mongoDBconnection } = require('./db/mongo.config');
 const { Server } = require("socket.io");
-
+const path = require('path');
 
 const API_VERSION='v1';
 const API_PREFIX='api';
+const viewsPath = path.resolve(__dirname, '../views');
+// const staticPath=path.resolve(__dirname,'public');
 
 class App {
 
@@ -16,10 +18,10 @@ class App {
         this.port=5000;
 
         this.connectToDataBase();
+        this.initHandlebars();
         this.initializeMiddleWares();
         this.initializeRoutes(routes);
-        this.initHandlebars();
-        
+
     }
 
     getServer(){
@@ -44,7 +46,7 @@ class App {
 
     initHandlebars(){
         this.app.engine("handlebars",handlebars.engine());
-        this.app.set("views",__dirname+"../views");
+        this.app.set("views", viewsPath);
         this.app.set("view engine", "handlebars");
 
     }
@@ -52,7 +54,9 @@ class App {
     initializeMiddleWares(){
         this.app.use(express.json());
         this.app.use(express.urlencoded({extended: true}));
-        this.app.use("/static",express.static(`${__dirname}/public`));
+        this.app.use('/public', express.static(path.join(__dirname, '../public')));
+
+        console.log('ruta: ',path.join(__dirname, '../public'))
     }
      
     listen(){
