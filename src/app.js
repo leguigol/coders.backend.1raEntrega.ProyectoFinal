@@ -1,93 +1,58 @@
 const express=require('express')
-const displayRoutes=require('express-routemap');
 const handlebars=require('express-handlebars');
+const mongoose = require("mongoose");
+const displayRoutes=require('express-routemap');
+const viewsRoutes=require('./routes/views.router');
+const productsRoutes=require('./routes/products.routes');
+const cartRoutes=require('./routes/carts.routes');
+
 const { mongoDBconnection } = require('./db/mongo.config');
 const { Server } = require("socket.io");
 const path = require('path');
+
+const PORT=5000;
+//const DB_HOST='localhost';
+// const DB_HOST='mongodb+srv:';
+// url: `mongodb+srv://leguigol:Lancelot1014@cluster0.pz68o51.mongodb.net/`;
+const DB_PORT=27017
+const DB_NAME='ecommerce'
 
 const API_VERSION='v1';
 const API_PREFIX='api';
 const viewsPath = path.resolve(__dirname, '../views');
 // const staticPath=path.resolve(__dirname,'public');
 
-class App {
+const app=express();
 
-    constructor(routes){
-        this.app=express();
-        this.env="development";
-        this.port=5000;
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-        this.connectToDataBase();
-        this.initHandlebars();
-        this.initializeMiddleWares();
-        this.initializeRoutes(routes);
+// const connection = mongoose.connect(`mongodb://${DB_HOST}:${DB_PORT}/${DB_NAME}`)
+// const connection = mongoose.connect(`${DB_HOST}:${DB_PORT}/${DB_NAME}`)
+mongoDBconnection()
+    .then((conn)=>{
+        console.log('CONNECTION MONGO OK !')
+    })
+    .catch((err)=>{
+        console.log('ERROR EN LA CONECCION A MONGO!');
+    })
 
-    }
 
-    getServer(){
-        return this.app;
-    }
+app.engine("handlebars", handlebars.engine());
+// app.set("views", __dirname + "/views");
+app.set("views", viewsPath);
+app.set("view engine", "handlebars");
 
-    closeServer(){
-        this.server=this.app.listen(this.port,()=>{
-            done();
-        })
-    }
+app.use(`/static`, express.static(__dirname + "/public"));
+// this.app.use('/public', express.static(path.join(__dirname, '../public')));
 
-    async connectToDataBase(){
-        await mongoDBconnection();
-    }
+app.use(`/${API_PREFIX}/${API_VERSION}/views`, viewsRoutes);
+app.use(`/${API_PREFIX}/${API_VERSION}/cart`, cartRoutes);
+app.use(`/${API_PREFIX}/${API_VERSION}/products`, productsRoutes);
 
-    initializeRoutes(routes){
-        routes.forEach((route) => {
-            this.app.use(`/${API_PREFIX}/${API_VERSION}`,route.router);
-        });
-    }
+app.listen(PORT, () => {
+    displayRoutes(app);
+    console.log(`Listening on ${PORT}`);
+});
 
-    initHandlebars(){
-        this.app.engine("handlebars",handlebars.engine());
-        this.app.set("views", viewsPath);
-        this.app.set("view engine", "handlebars");
 
-    }
-
-    initializeMiddleWares(){
-        this.app.use(express.json());
-        this.app.use(express.urlencoded({extended: true}));
-        this.app.use('/public', express.static(path.join(__dirname, '../public')));
-
-        console.log('ruta: ',path.join(__dirname, '../public'))
-    }
-     
-    listen(){
-        const server=this.app.listen(this.port,()=>{
-            displayRoutes(this.app);
-            console.log('=============================');
-            console.log(`==== ENV: ${this.env}`);
-            console.log(`==== PORT: ${this.port}`);
-            console.log('=============================');
-
-        });
-        
-        const io=require('socket.io')(server);
-
-        const messages=[];
-
-        io.on('connection', (socket) =>{
-            console.log('Un usuario esta conectado',socket.id);
-
-            socket.emit('messageLogs',messages);
-
-            socket.on("new-user",(data)=>{
-                socket.broadcast.emit('new-user',data);
-            })
-
-            socket.on("message",(data)=>{
-                messages.unshift(data);
-                io.emit("messageLogs",messages);
-            });
-        });
-    }
-}
-
-module.exports=App;

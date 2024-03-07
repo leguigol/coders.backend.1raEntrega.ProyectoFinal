@@ -1,8 +1,8 @@
 const productModel=require('../model/products.model');
 
-class ProductManager {
+const ProductManager= {
 
-    getAllProducts=async()=>{
+    getAllProducts: async()=>{
         try {
             const products=await productModel.find({});
             return products;
@@ -10,16 +10,16 @@ class ProductManager {
             console.log("🚀 ~ ProductManager ~ getAllProducts=async ~ error:", error)
             
         }
-    }
-    getProductById=async(id) =>{
+    },
+    getProductById: async(id) =>{
         try {
             const product=await productModel.find({_id: id});
             return product;
         } catch (error) {
             console.log("🚀 ~ ProductManager ~ getProductById=async ~ error:", error)
         }
-    }
-    createProduct=async(bodyProduct)=>{
+    },
+    createProduct: async(bodyProduct)=>{
         console.log(bodyProduct)
         try{
             const productDetail=await productModel.findOne({
@@ -34,8 +34,7 @@ class ProductManager {
             console.log(error);
         }
 
-    }
-
+    },
     async updateProduct(id, product) {
         try {
             const existingProduct = await productModel.findOne({ _id: id });

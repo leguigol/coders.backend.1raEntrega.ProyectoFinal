@@ -2,7 +2,7 @@ const {Router}=require('express');
 
 class BaseRoute{
 
-    path="/legui";
+    path="/";
     router=Router();
 
     constructor(){
@@ -15,9 +15,6 @@ class BaseRoute{
                 ok: true,
                 message: `IM AN API, UP AND RUNNING`
             });
-        })
-        this.router.get('/chat',(req,res)=>{
-            res.render('chat');
         })
     }
 }
